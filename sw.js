@@ -1,4 +1,4 @@
-var CACHE_NAME = "casetimer-v1";
+var CACHE_NAME = "casetimer-v2";
 var ASSETS = [
   "./index.html",
   "./manifest.json",
