@@ -1,0 +1,19 @@
+{
+  "name": "CaseTimer",
+  "short_name": "CaseTimer",
+  "description": "ケース面接対策用フェーズ別タイマー",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1f2937",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
