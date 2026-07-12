@@ -260,10 +260,16 @@
     color:var(--text-dim);
   }
   .history-item .hi-detail table{font-size:12px;}
-  .history-item .hi-memo{
-    white-space:pre-wrap;
-    margin-top:6px;
-    color:var(--text);
+  .history-item .hi-memo-label{
+    margin-top:8px;
+  }
+  .history-item textarea.hi-memo{
+    display:block;
+    width:100%;
+    min-height:64px;
+    margin-top:4px;
+    resize:vertical;
+    font-size:12px;
   }
   .empty-note{color:var(--text-dim); font-size:13px; text-align:center; padding:8px 0;}
   [hidden]{display:none !important;}
@@ -354,7 +360,7 @@
     </div>
     <div class="card">
       <h2>メモ</h2>
-      <textarea id="memo-summary" readonly></textarea>
+      <textarea id="memo-summary" placeholder="気づいたこと、時間配分の反省などを自由に記入"></textarea>
     </div>
     <button class="btn block" id="restart-btn">もう一度</button>
   </section>
@@ -786,6 +792,20 @@
   memoThinkingEl.addEventListener("input", function(){ saveMemo(memoThinkingEl.value); });
   memoPresentationEl.addEventListener("input", function(){ saveMemo(memoPresentationEl.value); });
 
+  function updateHistoryMemo(id, memo){
+    var history = loadHistory();
+    var entry = history.find(function(e){ return e.id === id; });
+    if(!entry) return;
+    entry.memo = memo;
+    saveHistory(history);
+  }
+
+  var lastHistoryId = null;
+  memoSummaryEl.addEventListener("input", function(){
+    saveMemo(memoSummaryEl.value);
+    if(lastHistoryId !== null) updateHistoryMemo(lastHistoryId, memoSummaryEl.value);
+  });
+
   // ================= Summary =================
   function goToSummary(){
     renderSummary();
@@ -826,15 +846,17 @@
 
   function saveSessionToHistory(){
     var history = loadHistory();
-    history.unshift({
+    var entry = {
       id: Date.now(),
       dateStr: new Date().toLocaleString("ja-JP"),
       mode: currentMode,
       thinking: thinkingResult,
       presentation: presentationResult,
       memo: loadMemo()
-    });
+    };
+    history.unshift(entry);
     saveHistory(history);
+    lastHistoryId = entry.id;
   }
 
   restartBtn.addEventListener("click", function(){
@@ -888,12 +910,20 @@
       table.innerHTML = rows;
       detail.appendChild(table);
 
-      if(entry.memo){
-        var memoDiv = document.createElement("div");
-        memoDiv.className = "hi-memo";
-        memoDiv.textContent = entry.memo;
-        detail.appendChild(memoDiv);
-      }
+      var memoLabel = document.createElement("div");
+      memoLabel.className = "hi-memo-label";
+      memoLabel.textContent = "メモ";
+      detail.appendChild(memoLabel);
+
+      var memoTextarea = document.createElement("textarea");
+      memoTextarea.className = "hi-memo";
+      memoTextarea.value = entry.memo || "";
+      memoTextarea.placeholder = "メモを追記";
+      memoTextarea.addEventListener("click", function(e){ e.stopPropagation(); });
+      memoTextarea.addEventListener("input", function(){
+        updateHistoryMemo(entry.id, memoTextarea.value);
+      });
+      detail.appendChild(memoTextarea);
 
       head.addEventListener("click", function(){
         detail.hidden = !detail.hidden;
