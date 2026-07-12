@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CaseTimer</title>
+<meta name="theme-color" content="#1f2937">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root{
+    --bg:#0f172a;
+    --panel:#1e293b;
+    --panel-2:#273449;
+    --text:#e5e7eb;
+    --text-dim:#94a3b8;
+    --accent:#3b82f6;
+    --accent-2:#60a5fa;
+    --ok:#22c55e;
+    --warn:#f59e0b;
+    --danger:#ef4444;
+    --border:#334155;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Hiragino Sans,"Yu Gothic",Meiryo,sans-serif;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{
+    max-width:520px;
+    margin:0 auto;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    padding:16px;
+    padding-bottom:calc(16px + env(safe-area-inset-bottom));
+  }
+  header{
+    text-align:center;
+    margin-bottom:16px;
+  }
+  header h1{
+    font-size:20px;
+    margin:0;
+    letter-spacing:0.02em;
+    color:var(--accent-2);
+  }
+  section{flex:1; display:flex; flex-direction:column; gap:14px;}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px;
+  }
+  h2{font-size:14px; margin:0 0 10px; color:var(--text-dim); font-weight:600;}
+  .phase-row{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .phase-row input[type="text"]{
+    flex:1;
+    min-width:0;
+  }
+  .phase-row input[type="number"]{
+    width:64px;
+  }
+  input[type="text"], input[type="number"], textarea{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:14px;
+    font-family:inherit;
+  }
+  input:focus, textarea:focus, button:focus{
+    outline:2px solid var(--accent);
+    outline-offset:1px;
+  }
+  .icon-btn{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    border-radius:8px;
+    width:34px;
+    height:34px;
+    font-size:16px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .icon-btn:hover{color:var(--danger); border-color:var(--danger);}
+  button{
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn{
+    border:none;
+    border-radius:10px;
+    padding:11px 14px;
+    font-size:14px;
+    font-weight:600;
+    color:#fff;
+    background:var(--accent);
+  }
+  .btn.secondary{
+    background:var(--panel-2);
+    color:var(--text);
+    border:1px solid var(--border);
+  }
+  .btn.block{width:100%;}
+  .btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .add-phase-btn{
+    width:100%;
+    padding:10px;
+    border:1px dashed var(--border);
+    background:transparent;
+    color:var(--text-dim);
+    border-radius:10px;
+    font-size:14px;
+  }
+  .total-line{
+    display:flex;
+    justify-content:space-between;
+    color:var(--text-dim);
+    font-size:13px;
+    margin-top:6px;
+  }
+
+  /* --- Timer screen --- */
+  #timer-screen{align-items:stretch;}
+  .phase-indicator{
+    text-align:center;
+    color:var(--text-dim);
+    font-size:13px;
+  }
+  .phase-name{
+    text-align:center;
+    font-size:22px;
+    font-weight:700;
+    margin:2px 0 10px;
+  }
+  .time-display{
+    text-align:center;
+    font-size:64px;
+    font-weight:700;
+    font-variant-numeric:tabular-nums;
+    letter-spacing:0.02em;
+    margin:6px 0 14px;
+  }
+  .time-display.warn{color:var(--warn);}
+  .time-display.danger{color:var(--danger); animation:pulse 1s infinite;}
+  @keyframes pulse{
+    0%,100%{opacity:1;}
+    50%{opacity:0.55;}
+  }
+  .progress-outer{
+    height:10px;
+    background:var(--panel-2);
+    border-radius:6px;
+    overflow:hidden;
+    margin-bottom:16px;
+  }
+  .progress-inner{
+    height:100%;
+    background:var(--ok);
+    width:0%;
+    transition:width 0.2s linear, background 0.3s;
+  }
+  .progress-inner.warn{background:var(--warn);}
+  .progress-inner.danger{background:var(--danger);}
+  .control-row{
+    display:flex;
+    gap:8px;
+  }
+  .control-row .btn{flex:1;}
+  .upcoming{
+    font-size:12px;
+    color:var(--text-dim);
+    text-align:center;
+  }
+  textarea#memo{
+    width:100%;
+    min-height:110px;
+    resize:vertical;
+  }
+
+  /* --- Summary screen --- */
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-size:13px;
+  }
+  th,td{
+    text-align:left;
+    padding:6px 4px;
+    border-bottom:1px solid var(--border);
+  }
+  th{color:var(--text-dim); font-weight:600;}
+  td.num, th.num{text-align:right; font-variant-numeric:tabular-nums;}
+  .status-completed{color:var(--ok);}
+  .status-skipped{color:var(--warn);}
+  .status-stopped{color:var(--text-dim);}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header><h1>CaseTimer</h1></header>
+
+  <!-- Setup screen -->
+  <section id="setup-screen">
+    <div class="card">
+      <h2>フェーズ設定</h2>
+      <div id="phase-list"></div>
+      <button class="add-phase-btn" id="add-phase-btn">+ フェーズを追加</button>
+      <div class="total-line"><span>合計時間</span><span id="total-minutes">0分</span></div>
+    </div>
+    <button class="btn block" id="start-btn">開始</button>
+  </section>
+
+  <!-- Timer screen -->
+  <section id="timer-screen" hidden>
+    <div class="phase-indicator" id="phase-indicator">1 / 4</div>
+    <div class="phase-name" id="phase-name">フェーズ名</div>
+    <div class="time-display" id="time-display">00:00</div>
+    <div class="progress-outer"><div class="progress-inner" id="progress-inner"></div></div>
+    <div class="control-row">
+      <button class="btn" id="pause-btn">一時停止</button>
+      <button class="btn secondary" id="reset-btn">リセット</button>
+    </div>
+    <div class="control-row">
+      <button class="btn secondary" id="skip-btn">次のフェーズへ</button>
+      <button class="btn secondary" id="stop-btn">終了する</button>
+    </div>
+    <div class="upcoming" id="upcoming"></div>
+    <div class="card">
+      <h2>メモ</h2>
+      <textarea id="memo" placeholder="気づいたこと、時間配分の反省などを自由に記入"></textarea>
+    </div>
+  </section>
+
+  <!-- Summary screen -->
+  <section id="summary-screen" hidden>
+    <div class="card">
+      <h2>結果ログ</h2>
+      <table>
+        <thead><tr><th>フェーズ</th><th class="num">予定</th><th class="num">実績</th><th>状態</th></tr></thead>
+        <tbody id="log-body"></tbody>
+      </table>
+      <div class="total-line"><span>合計</span><span id="log-total"></span></div>
+    </div>
+    <div class="card">
+      <h2>メモ</h2>
+      <textarea id="memo-summary" readonly></textarea>
+    </div>
+    <button class="btn secondary block" id="download-btn">ログをテキストで保存</button>
+    <button class="btn block" id="restart-btn">もう一度</button>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LS_PHASES = "caseTimer.phases";
+  var LS_MEMO = "caseTimer.memo";
+
+  var DEFAULT_PHASES = [
+    {name:"問題把握", minutes:2},
+    {name:"構造化", minutes:5},
+    {name:"分析", minutes:10},
+    {name:"まとめ", minutes:3}
+  ];
+
+  var setupScreen = document.getElementById("setup-screen");
+  var timerScreen = document.getElementById("timer-screen");
+  var summaryScreen = document.getElementById("summary-screen");
+
+  var phaseListEl = document.getElementById("phase-list");
+  var addPhaseBtn = document.getElementById("add-phase-btn");
+  var totalMinutesEl = document.getElementById("total-minutes");
+  var startBtn = document.getElementById("start-btn");
+
+  var phaseIndicatorEl = document.getElementById("phase-indicator");
+  var phaseNameEl = document.getElementById("phase-name");
+  var timeDisplayEl = document.getElementById("time-display");
+  var progressInnerEl = document.getElementById("progress-inner");
+  var pauseBtn = document.getElementById("pause-btn");
+  var resetBtn = document.getElementById("reset-btn");
+  var skipBtn = document.getElementById("skip-btn");
+  var stopBtn = document.getElementById("stop-btn");
+  var upcomingEl = document.getElementById("upcoming");
+  var memoEl = document.getElementById("memo");
+
+  var logBodyEl = document.getElementById("log-body");
+  var logTotalEl = document.getElementById("log-total");
+  var memoSummaryEl = document.getElementById("memo-summary");
+  var downloadBtn = document.getElementById("download-btn");
+  var restartBtn = document.getElementById("restart-btn");
+
+  var phases = loadPhases();
+  var session = null;
+  var tickHandle = null;
+
+  function loadPhases(){
+    try{
+      var raw = localStorage.getItem(LS_PHASES);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        if(Array.isArray(parsed) && parsed.length) return parsed;
+      }
+    }catch(e){}
+    return DEFAULT_PHASES.slice();
+  }
+
+  function savePhases(){
+    localStorage.setItem(LS_PHASES, JSON.stringify(phases));
+  }
+
+  function loadMemo(){
+    return localStorage.getItem(LS_MEMO) || "";
+  }
+
+  function saveMemo(v){
+    localStorage.setItem(LS_MEMO, v);
+  }
+
+  // ---------- Setup screen ----------
+  function renderPhaseList(){
+    phaseListEl.innerHTML = "";
+    phases.forEach(function(p, idx){
+      var row = document.createElement("div");
+      row.className = "phase-row";
+
+      var nameInput = document.createElement("input");
+      nameInput.type = "text";
+      nameInput.value = p.name;
+      nameInput.placeholder = "フェーズ名";
+      nameInput.addEventListener("input", function(){
+        phases[idx].name = nameInput.value;
+        savePhases();
+      });
+
+      var minInput = document.createElement("input");
+      minInput.type = "number";
+      minInput.min = "1";
+      minInput.max = "180";
+      minInput.value = p.minutes;
+      minInput.addEventListener("input", function(){
+        var v = parseInt(minInput.value, 10);
+        phases[idx].minutes = (isNaN(v) || v < 1) ? 1 : v;
+        savePhases();
+        renderTotal();
+      });
+
+      var delBtn = document.createElement("button");
+      delBtn.className = "icon-btn";
+      delBtn.textContent = "✕";
+      delBtn.title = "削除";
+      delBtn.addEventListener("click", function(){
+        phases.splice(idx, 1);
+        savePhases();
+        renderPhaseList();
+        renderTotal();
+      });
+
+      row.appendChild(nameInput);
+      row.appendChild(minInput);
+      row.appendChild(document.createTextNode("分"));
+      row.appendChild(delBtn);
+      phaseListEl.appendChild(row);
+    });
+    renderTotal();
+  }
+
+  function renderTotal(){
+    var total = phases.reduce(function(s,p){ return s + (parseInt(p.minutes,10)||0); }, 0);
+    totalMinutesEl.textContent = total + "分";
+    startBtn.disabled = phases.length === 0;
+  }
+
+  addPhaseBtn.addEventListener("click", function(){
+    phases.push({name:"新しいフェーズ", minutes:5});
+    savePhases();
+    renderPhaseList();
+  });
+
+  startBtn.addEventListener("click", function(){
+    if(phases.length === 0) return;
+    startSession();
+  });
+
+  // ---------- Timer session ----------
+  function startSession(){
+    session = {
+      index: -1,
+      log: [],
+      current: null
+    };
+    setupScreen.hidden = true;
+    timerScreen.hidden = false;
+    summaryScreen.hidden = true;
+    memoEl.value = loadMemo();
+    nextPhase();
+  }
+
+  function makeCurrent(idx){
+    var p = phases[idx];
+    return {
+      idx: idx,
+      name: p.name,
+      plannedMs: (parseInt(p.minutes,10)||1) * 60000,
+      elapsedMs: 0,
+      running: true,
+      lastTick: Date.now()
+    };
+  }
+
+  function nextPhase(){
+    session.index += 1;
+    if(session.index >= phases.length){
+      finishSession();
+      return;
+    }
+    session.current = makeCurrent(session.index);
+    startTicking();
+    renderTimerScreen();
+  }
+
+  function startTicking(){
+    stopTicking();
+    tickHandle = setInterval(tick, 200);
+  }
+  function stopTicking(){
+    if(tickHandle){ clearInterval(tickHandle); tickHandle = null; }
+  }
+
+  function tick(){
+    var c = session.current;
+    if(!c || !c.running) return;
+    var now = Date.now();
+    c.elapsedMs += (now - c.lastTick);
+    c.lastTick = now;
+    if(c.elapsedMs >= c.plannedMs){
+      c.elapsedMs = c.plannedMs;
+      renderTimerScreen();
+      completePhase("completed");
+      return;
+    }
+    renderTimerScreen();
+  }
+
+  function completePhase(status){
+    var c = session.current;
+    playBeep();
+    session.log.push({
+      name: c.name,
+      plannedMs: c.plannedMs,
+      actualMs: c.elapsedMs,
+      status: status
+    });
+    nextPhase();
+  }
+
+  function finishSession(){
+    stopTicking();
+    timerScreen.hidden = true;
+    summaryScreen.hidden = false;
+    renderSummary();
+  }
+
+  function renderTimerScreen(){
+    var c = session.current;
+    if(!c) return;
+    phaseIndicatorEl.textContent = (c.idx+1) + " / " + phases.length;
+    phaseNameEl.textContent = c.name;
+
+    var remainMs = Math.max(0, c.plannedMs - c.elapsedMs);
+    timeDisplayEl.textContent = formatTime(remainMs);
+
+    var ratio = c.plannedMs > 0 ? (c.elapsedMs / c.plannedMs) : 0;
+    var remainRatio = 1 - ratio;
+    progressInnerEl.style.width = Math.min(100, ratio*100) + "%";
+
+    timeDisplayEl.classList.remove("warn","danger");
+    progressInnerEl.classList.remove("warn","danger");
+    if(remainRatio <= 0.1){
+      timeDisplayEl.classList.add("danger");
+      progressInnerEl.classList.add("danger");
+    } else if(remainRatio <= 0.3){
+      timeDisplayEl.classList.add("warn");
+      progressInnerEl.classList.add("warn");
+    }
+
+    pauseBtn.textContent = c.running ? "一時停止" : "再開";
+
+    var next = phases[c.idx+1];
+    upcomingEl.textContent = next ? ("次: " + next.name + "(" + next.minutes + "分)") : "これが最後のフェーズです";
+  }
+
+  function formatTime(ms){
+    var totalSec = Math.ceil(ms/1000);
+    var m = Math.floor(totalSec/60);
+    var s = totalSec%60;
+    return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;
+  }
+
+  pauseBtn.addEventListener("click", function(){
+    var c = session && session.current;
+    if(!c) return;
+    if(c.running){
+      c.running = false;
+    } else {
+      c.running = true;
+      c.lastTick = Date.now();
+    }
+    renderTimerScreen();
+  });
+
+  resetBtn.addEventListener("click", function(){
+    var c = session && session.current;
+    if(!c) return;
+    c.elapsedMs = 0;
+    c.lastTick = Date.now();
+    c.running = false;
+    renderTimerScreen();
+  });
+
+  skipBtn.addEventListener("click", function(){
+    if(!session || !session.current) return;
+    completePhase("skipped");
+  });
+
+  stopBtn.addEventListener("click", function(){
+    if(!session) return;
+    stopTicking();
+    timerScreen.hidden = true;
+    summaryScreen.hidden = false;
+    renderSummary();
+  });
+
+  memoEl.addEventListener("input", function(){
+    saveMemo(memoEl.value);
+  });
+
+  // ---------- Summary screen ----------
+  function renderSummary(){
+    logBodyEl.innerHTML = "";
+    var totalPlanned = 0, totalActual = 0;
+    var statusLabel = {completed:"完了", skipped:"スキップ", stopped:"中断"};
+    session.log.forEach(function(entry){
+      totalPlanned += entry.plannedMs;
+      totalActual += entry.actualMs;
+      var tr = document.createElement("tr");
+      var statusClass = "status-" + entry.status;
+      tr.innerHTML =
+        "<td>" + escapeHtml(entry.name) + "</td>" +
+        "<td class='num'>" + formatTime(entry.plannedMs) + "</td>" +
+        "<td class='num'>" + formatTime(entry.actualMs) + "</td>" +
+        "<td class='" + statusClass + "'>" + statusLabel[entry.status] + "</td>";
+      logBodyEl.appendChild(tr);
+    });
+    logTotalEl.textContent = formatTime(totalActual) + " / " + formatTime(totalPlanned);
+    memoSummaryEl.value = loadMemo();
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  downloadBtn.addEventListener("click", function(){
+    var lines = [];
+    lines.push("CaseTimer 記録 " + new Date().toLocaleString("ja-JP"));
+    lines.push("");
+    var statusLabel = {completed:"完了", skipped:"スキップ", stopped:"中断"};
+    session.log.forEach(function(entry){
+      lines.push(entry.name + "\t予定:" + formatTime(entry.plannedMs) + "\t実績:" + formatTime(entry.actualMs) + "\t" + statusLabel[entry.status]);
+    });
+    lines.push("");
+    lines.push("メモ:");
+    lines.push(loadMemo());
+
+    var blob = new Blob([lines.join("\n")], {type:"text/plain;charset=utf-8"});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var ts = new Date();
+    var pad = function(n){return (n<10?"0":"")+n;};
+    var fname = "casetimer_" + ts.getFullYear() + pad(ts.getMonth()+1) + pad(ts.getDate()) + "_" + pad(ts.getHours()) + pad(ts.getMinutes()) + ".txt";
+    a.href = url;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  restartBtn.addEventListener("click", function(){
+    session = null;
+    summaryScreen.hidden = true;
+    setupScreen.hidden = false;
+    renderPhaseList();
+  });
+
+  // ---------- Sound ----------
+  var audioCtx = null;
+  function playBeep(){
+    try{
+      if(!audioCtx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+      }
+      if(audioCtx.state === "suspended") audioCtx.resume();
+      var now = audioCtx.currentTime;
+      [0, 0.22, 0.44].forEach(function(offset){
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.0001, now+offset);
+        gain.gain.exponentialRampToValueAtTime(0.3, now+offset+0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now+offset+0.18);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now+offset);
+        osc.stop(now+offset+0.2);
+      });
+    }catch(e){}
+  }
+
+  // unlock audio on first user gesture (needed on iOS)
+  document.addEventListener("click", function unlock(){
+    try{
+      if(!audioCtx){
+        var AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+      }
+      if(audioCtx.state === "suspended") audioCtx.resume();
+    }catch(e){}
+    document.removeEventListener("click", unlock);
+  }, {once:true});
+
+  // ---------- Service worker (only works when served over http/https) ----------
+  if("serviceWorker" in navigator && location.protocol.indexOf("http") === 0){
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  // ---------- init ----------
+  renderPhaseList();
+})();
+</script>
+</body>
+</html>
