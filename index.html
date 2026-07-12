@@ -568,6 +568,7 @@
     [setupScreen, thinkingScreen, presentationScreen, summaryScreen, historyScreen].forEach(function(s){
       s.hidden = (s !== target);
     });
+    window.scrollTo(0, 0);
   }
 
   // ================= Session / stage clock =================
@@ -589,7 +590,8 @@
 
   function startSession(){
     thinkingResult = null;
-    memoThinkingEl.value = loadMemo();
+    saveMemo("");
+    memoThinkingEl.value = "";
     startThinkingStage();
     showScreen(thinkingScreen);
   }
